@@ -32,7 +32,10 @@ require "fileutils"
 require "gdbm"
 require "logger"
 require "digest/md5"
+require 'net/https'
 #require "benchmark"
+
+$LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
 
 require "thrift/types"
 require "thrift/struct"
@@ -286,9 +289,10 @@ module EnClient
         http = Net::HTTP.new @url.host, @url.port
       end
       http.use_ssl = @url.scheme == "https"
-      #http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      #http.verify_depth = 5
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      http.verify_depth = 5
+      http.ssl_version = :SSLv3
+      # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       resp = http.post(@url.request_uri, @outbuf, @headers)
       @inbuf = StringIO.new resp.body
       @outbuf = ""
