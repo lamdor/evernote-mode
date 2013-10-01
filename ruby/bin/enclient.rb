@@ -1079,7 +1079,8 @@ module EnClient
       LOG.info "[sync state end]"
       LOG.info "expiration     = #{@sm.expiration}"
 
-      @sm.refresh_authentication sync_state.currentTime
+      # Since all authentication is via token, this probably isn't needed ever. -- @pymander
+      #@sm.refresh_authentication sync_state.currentTime
       last_sync, usn = DBUtils.get_last_sync_and_usn @dm
 
       LOG.info "[current state begin]"
@@ -1194,12 +1195,13 @@ module EnClient
       @note_store = create_note_store @shared_id
     end
 
+    # This function needs changing.  According to http://dev.evernote.com/doc/reference/UserStore.html#Fn_UserStore_refreshAuthentication
+    # this is only available for internal authentications.  So it needs to refresh using the plain old normal auth.
+    # -- @pymander
     def refresh_authentication(current_time)
       if current_time > @expiration - REFRESH_LIMIT_SEC * 1000
         LOG.info "refresh authentication"
-        auth_result = @user_store.refreshAuthentication @auth_token
-        @auth_token, dummy, @expiration = get_session auth_result
-        @note_store = create_note_store @shared_id
+        authenticate_with_token @auth_token
       end
     end
 
