@@ -1,4 +1,4 @@
-#! /usr/bin/ruby1.8 -sWKu
+#! /usr/bin/ruby1.9.1 -sWKu
 # -*- coding: utf-8 -*-
 
 #
@@ -289,10 +289,10 @@ module EnClient
         http = Net::HTTP.new @url.host, @url.port
       end
       http.use_ssl = @url.scheme == "https"
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      http.verify_depth = 5
-      http.ssl_version = :SSLv3
-      # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      #http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      #http.verify_depth = 5
+      #http.ssl_version = :SSLv3
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       resp = http.post(@url.request_uri, @outbuf, @headers)
       @inbuf = StringIO.new resp.body
       @outbuf = ""
@@ -429,14 +429,20 @@ module EnClient
   end
 
 
+
+
   class AuthCommand < Command
-    attr_accessor :user, :passwd
+    attr_accessor :user, :passwd, :auth_token
 
     def exec_impl
-      Formatter.to_ascii @user, @passwd
+      Formatter.to_ascii @user, @passwd, @auth_token
 
       server_task do
-        sm.authenticate @user, @passwd
+        if @auth_token
+          sm.authenticate_with_token @auth_token
+        else
+          sm.authenticate @user, @passwd
+        end
         LOG.info "Auth successed: auth_token = '#{sm.auth_token}', shared_id = '#{sm.shared_id}'"
         tm.put SyncTask.new(sm, dm, tm)
         server_task true do # defer reply until first sync will be done.
@@ -1176,6 +1182,15 @@ module EnClient
       @user_store = create_user_store
       auth_result = @user_store.authenticate user, passwd, appname, appid
       @auth_token, @shared_id, @expiration = get_session auth_result
+      @note_store = create_note_store @shared_id
+    end
+
+    def authenticate_with_token(token)
+      @user_store = create_user_store
+      user = @user_store.getUser token
+      @auth_token = token
+      @shared_id = user.shardId if user
+      @expiration = 60 * 60 * 24 * 365
       @note_store = create_note_store @shared_id
     end
 
