@@ -11,7 +11,7 @@ configuration
 
 You'll need to get a production developer token from [Evernote][4] and
 in Emacs set the custom variable `evernote-developer-token`.  If
-`evernote-mode` is loaded this can be done easily with 'M-x
+`evernote-mode` is loaded this can be done easily with `M-x
 customize-group evernote`.
 
 [1]: http://code.google.com/p/emacs-evernote-mode/ "Original source"
