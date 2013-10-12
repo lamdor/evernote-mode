@@ -404,7 +404,7 @@ module EnClient
       all_commands =
         [AuthCommand,
          ListNoteCommand,
-         ListNotebookCommand,
+         ListNotebooksCommand,
          ListTagCommand,
          ListSearchCommand,
          SearchNoteCommand,
@@ -775,7 +775,7 @@ module EnClient
   end
 
 
-  class ListNotebookCommand < Command
+  class ListNotebooksCommand < Command
     @@issued_before = false
 
     def exec_impl
@@ -795,7 +795,7 @@ module EnClient
       notebooks.sort! do |a, b|
         a.name <=> b.name
       end
-      reply = ListNotebookReply.new
+      reply = ListNotebooksReply.new
       reply.notebooks = notebooks
       shell.reply self, reply
     end
@@ -805,7 +805,7 @@ module EnClient
         LOG.debug "return notebooks from server"
         notebooks = sm.note_store.listNotebooks sm.auth_token
         DBUtils.sync_updated_notebooks dm, notebooks
-        reply = ListNotebookReply.new
+        reply = ListNotebooksReply.new
         reply.notebooks = notebooks
         @@issued_before = true
         shell.reply self, reply
@@ -975,7 +975,7 @@ module EnClient
   end
 
 
-  class ListNotebookReply < Reply
+  class ListNotebooksReply < Reply
     attr_accessor :notebooks
   end
 

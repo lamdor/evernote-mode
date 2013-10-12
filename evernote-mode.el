@@ -1800,7 +1800,7 @@
   "Issue listnotebooks command"
   (let ((reply (enh-command-issue
                 (format ":class => %s"
-                        (enutil-to-ruby-string "ListNotebookCommand")))))
+                        (enutil-to-ruby-string "ListNotebooksCommand")))))
     (enutil-aget 'notebooks reply)))
 
 
@@ -1863,6 +1863,16 @@
                         (enutil-to-ruby-string (enutil-buffer-string inbuf))))))
     (enutil-aget 'note reply)))
 
+
+(defun enh-command-update-note-tags (note tag-names)
+  "Update a note and change just the tag guids"
+  (let ((reply (enh-command-issue
+                (format ":class => %s, :guid => %s, :title => %s, :tag_names => %s"
+                        (enutil-to-ruby-string "UpdateNoteCommand")
+                        (enutil-to-ruby-string (enutil-aget 'guid note))
+                        (enutil-to-ruby-string (enutil-aget 'title note))
+                        (enutil-to-ruby-string-list tag-names t)))))
+    (enutil-aget 'note reply)))
 
 (defun enh-command-update-note (inbuf guid name notebook-guid is-tag-updated tag-names edit-mode)
   "Issue updatenote command specified by the guid and the parameters for updating."
@@ -2306,6 +2316,16 @@
   (when (get-buffer enh-password-cache-buffer)
     (kill-buffer enh-password-cache-buffer)))
 
+;;; Programmatic functions for use in other libraries.
+(defun enh-get-notebook-by-name (name)
+  (let ((nb-list (enh-command-get-notebook-attrs)))
+    (loop for nb in nb-list
+          if (and (assq 'name nb)
+                  (string= (cdr (assq 'name nb)) "Captures"))
+          return nb)))
+
+(defun enh-get-notes-for-notebook (nb)
+  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General util functions (enutil-xxx)
