@@ -6,7 +6,17 @@ Emacs interface for Evernote which originally started on
 1.9.3 and Emacs 24.1.  Which was then updated to [work with OAuth][3].
 Then just a little bit of Emacs customization niceness was added.
 
-configuration
+INSTALLATION
+------------
+
+You will need to install the Evernote OAUTH Ruby gems in order to get
+all of this stuff working.  Run the following command:
+
+    gem install evernote_oauth
+
+
+
+CONFIGURATION
 -------------
 
 You'll need to get a production developer token from [Evernote][4] and
