@@ -48,14 +48,15 @@
 (defun org-evernote-pull ()
   "Pull new captured items from Evernote."
   (interactive)
-  (let ((guid (enh-notebook-name-to-guid org-evernote-notebook-name))
-          (captured-id (car (enh-tag-names-to-guids (list org-evernote-captured-tag)))))
-    (save-excursion
-      (find-file org-evernote-file)
-      (loop for note in (enh-command-get-note-attrs-from-notebook-and-tag-guids guid nil)
-            unless (member captured-id (cdr (assq 'tagGuids note)))
-            do (and (org-evernote-capture-note note)
-                    (org-evernote-tag-note note org-evernote-captured-tag)))
-      (org-evernote-timestamp-buffer (current-buffer))
-      (save-buffer))))
+  (enh-command-with-auth
+   (let ((guid (enh-notebook-name-to-guid org-evernote-notebook-name))
+         (captured-id (car (enh-tag-names-to-guids (list org-evernote-captured-tag)))))
+     (save-excursion
+       (find-file org-evernote-file)
+       (loop for note in (enh-command-get-note-attrs-from-notebook-and-tag-guids guid nil)
+             unless (member captured-id (cdr (assq 'tagGuids note)))
+             do (and (org-evernote-capture-note note)
+                     (org-evernote-tag-note note org-evernote-captured-tag)))
+       (org-evernote-timestamp-buffer (current-buffer))
+       (save-buffer)))))
 
