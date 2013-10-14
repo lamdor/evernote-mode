@@ -1,5 +1,8 @@
 ;;; Pull notes from evernote and import them to org-mode
 
+(require 'org)
+(require 'evernote-mode)
+
 (defvar org-evernote-notebook-name "Captures"
   "*Name of the Evernote notebook to pull captured items from.")
 
@@ -60,3 +63,4 @@
        (org-evernote-timestamp-buffer (current-buffer))
        (save-buffer)))))
 
+(provide 'org-evernote)
