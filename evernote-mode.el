@@ -2324,9 +2324,6 @@
                   (string= (cdr (assq 'name nb)) "Captures"))
           return nb)))
 
-(defun enh-get-notes-for-notebook (nb)
-  
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General util functions (enutil-xxx)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
