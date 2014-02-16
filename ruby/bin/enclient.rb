@@ -86,11 +86,11 @@ module EnClient
         end
       end
       fields.delete nil
-      fields.join ","
+      fields.join "\u0000"
     end
 
     def deserialize(str)
-      fields = str.split ","
+      fields = str.split "\u0000"
       fields.each do |f|
         f =~ /\A([^=]*)=(.*)\z/
         varsym = $1.to_sym
@@ -911,6 +911,7 @@ module EnClient
       notes.sort! do |a, b|
         b.updated <=> a.updated
       end
+
       reply = ListNoteReply.new
       reply.notes = notes
       shell.reply self, reply
