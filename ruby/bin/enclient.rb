@@ -86,11 +86,11 @@ module EnClient
         end
       end
       fields.delete nil
-      fields.join "\u0000"
+      fields.join ","
     end
 
     def deserialize(str)
-      fields = str.split "\u0000"
+      fields = str.split ","
       fields.each do |f|
         f =~ /\A([^=]*)=(.*)\z/
         varsym = $1.to_sym
