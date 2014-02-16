@@ -86,11 +86,11 @@ module EnClient
         end
       end
       fields.delete nil
-      fields.join ","
+      fields.join "\u0000"
     end
 
     def deserialize(str)
-      fields = str.split ","
+      fields = str.split "\u0000"
       fields.each do |f|
         f =~ /\A([^=]*)=(.*)\z/
         varsym = $1.to_sym
@@ -119,6 +119,11 @@ module EnClient
               Formatter.decode_base64 varval_str
             when :field_type_base64_array
               Formatter.decode_base64_list varval_str.split("|")
+            when :field_type_object
+              a = Evernote::EDAM::Type::NoteAttributes.new
+              serialized = Formatter.decode_base64 varval_str
+              a.deserialize serialized
+              a
             else
               raise IllegalStateException.new("illegal field type #{vartype} for #{varsym}")
             end
@@ -902,6 +907,7 @@ module EnClient
       notes.sort! do |a, b|
         b.updated <=> a.updated
       end
+
       reply = ListNoteReply.new
       reply.notes = notes
       shell.reply self, reply
