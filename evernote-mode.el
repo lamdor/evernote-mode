@@ -183,7 +183,7 @@
   :link '(url-link 
           "http://dev.evernote.com/doc/articles/authentication.php#devtoken")
   :group 'evernote
-  :type '(list string))
+  :type 'string)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface for evernote-browsing-mode.
