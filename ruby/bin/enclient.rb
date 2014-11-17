@@ -93,11 +93,13 @@ module EnClient
       fields = str.split ","
       fields.each do |f|
         f =~ /\A([^=]*)=(.*)\z/
+        if $1.nil? then
+          next;
+        end
         varsym = $1.to_sym
         varval_str = $2
         vartype = serialized_fields[varsym]
         #puts "[#{varsym}], [#{varval_str}], [#{vartype}]"
-
         varval =
           if varval_str
             case vartype
