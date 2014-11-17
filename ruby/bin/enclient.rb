@@ -533,8 +533,8 @@ module EnClient
     def to_xhtml(content)
       content = CGI.escapeHTML content
       content.gsub! %r{ }, %{&nbsp;}
-        content.gsub! %r{(?:\r\n)|\n|\r}, %|<br clear="none"/>|
-        content = NOTE_DEFAULT_HEADER + content + NOTE_DEFAULT_FOOTER
+      content.gsub! %r{(?:\r\n)|\n|\r}, %|<br clear="none"/>|
+      content = NOTE_DEFAULT_HEADER + content + NOTE_DEFAULT_FOOTER
     end
   end
 

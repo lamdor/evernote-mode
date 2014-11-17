@@ -1951,9 +1951,10 @@
     (save-excursion
       (set-buffer buffer)
       (erase-buffer)
-      ;(delete-region (point-min) (point-max))
       (setq enh-command-next-command-id
             (+ 1 enh-command-next-command-id))
+      ;; @pymander debugs here
+      ;;(message "ENC Command => %s" command)
       (process-send-string proc
                            (format "{%s, :command_id => %d}"
                                    command enh-command-next-command-id))
