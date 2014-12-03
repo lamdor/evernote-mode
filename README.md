@@ -1,6 +1,8 @@
 evernote-mode
 =============
 
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/pymander/evernote-mode?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 Emacs interface for Evernote which originally started on
 [Google Code][1].  Then it was [updated][2] for working with Ruby
 1.9.3 and Emacs 24.1.  Which was then updated to [work with OAuth][3].
@@ -13,6 +15,8 @@ You will need to install the Evernote OAUTH Ruby gems in order to get
 all of this stuff working.  Run the following command:
 
     gem install evernote_oauth
+
+Copy `evernote-mode.el` to your load path.
 
 
 
