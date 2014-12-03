@@ -1,5 +1,6 @@
 evernote-mode
 =============
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/pymander/evernote-mode?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Emacs interface for Evernote which originally started on
 [Google Code][1].  Then it was [updated][2] for working with Ruby
