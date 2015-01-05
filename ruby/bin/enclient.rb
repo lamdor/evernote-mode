@@ -221,9 +221,9 @@ module Evernote
 
         def serialized_fields
           { :subjectDate => :field_type_timestamp,
-            :latitude => :field_type_string, # double
-            :longitude => :field_type_string, # double
-            :altitude => :field_type_string, # double
+            :latitude => :field_type_int, # double
+            :longitude => :field_type_int, # double
+            :altitude => :field_type_int, # double
             :author => :field_type_string,
             :source => :field_type_string,
             :sourceURL => :field_type_string,
