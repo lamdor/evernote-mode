@@ -36,7 +36,7 @@ in Emacs set the custom variable `evernote-developer-token`.  If
 customize-group evernote`.
 
 TROUBLESHOOTING
-_______________
+---------------
 
 If you get an error message regarding enclient.rb, you may need to modify
 the variable enh-enclient-command in evernote-mode.el (check to see where setup.rb installed it).
