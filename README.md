@@ -17,9 +17,15 @@ all of this stuff working.  Run the following command:
 
     gem install evernote_oauth
 
+Clone this repo and run setup.rb:
+
+    git clone https://github.com/pymander/evernote-mode
+    cd evernote-mode/ruby
+    ruby setup.rb
+
 Copy `evernote-mode.el` to your load path.
 
-
+See the [Original Readme][5] for installation and usage details.
 
 CONFIGURATION
 -------------
@@ -29,6 +35,12 @@ in Emacs set the custom variable `evernote-developer-token`.  If
 `evernote-mode` is loaded this can be done easily with `M-x
 customize-group evernote`.
 
+TROUBLESHOOTING
+---------------
+
+If you get an error message regarding enclient.rb, you may need to modify
+the variable enh-enclient-command in evernote-mode.el (check to see where setup.rb installed it).
+
 [1]: http://code.google.com/p/emacs-evernote-mode/ "Original source"
 
 [2]: https://github.com/rubbish/evernote-mode "rubbish/evernote-mode"
@@ -37,7 +49,4 @@ customize-group evernote`.
 
 [4]: http://dev.evernote.com/doc/articles/authentication.php#devtoken "Evernote Authentication"
 
-
-
-
-
+[5]: http://emacs-evernote-mode.googlecode.com/svn/branches/0_41/doc/readme_en.html "Original Readme"
