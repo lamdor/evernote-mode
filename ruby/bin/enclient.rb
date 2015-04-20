@@ -1837,6 +1837,11 @@ module EnClient
     def self.to_ascii(*rest)
       if IS_FORCE_ENCODING_SUPPORTED
         rest.each do |elem|
+          if elem
+           if elem.bytesize > elem.length
+             return
+           end
+          end
           elem.force_encoding Encoding::ASCII_8BIT if elem
         end
       end
