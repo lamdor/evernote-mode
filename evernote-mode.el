@@ -573,26 +573,9 @@
   "Login"
   (interactive)
   (if (called-interactively-p) (enh-clear-onmem-cache))
-  (if evernote-developer-token
-      (enh-command-login-token evernote-developer-token) 
-    (unwind-protect
-        (let* ((cache (enh-password-cache-load))
-               (usernames (mapcar #'car cache))
-               (username (or evernote-username
-                             (read-string "Evernote user name:"
-                                          (car usernames) 'usernames)))
-               (cache-passwd (enutil-aget username cache)))
-          (unless (and cache-passwd
-                       (eq (catch 'error 
-                             (progn 
-                               (enh-command-login username cache-passwd)
-                               t))
-                           t))
-            (let* ((passwd (read-passwd "Passwd:")))
-              (enh-command-login username passwd)
-              (setq evernote-username username)
-              (enh-password-cache-save (enutil-aset username cache passwd)))))
-      (enh-password-cache-close))))
+  (unless evernote-developer-token
+    (error "You must define `evernote-developer-token' before using this package. Please read the documentation."))
+  (enh-command-login-token evernote-developer-token)) 
 
 (defun evernote-open-note (&optional ask-notebook)
   "Open a note"
