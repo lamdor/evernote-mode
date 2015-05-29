@@ -49,4 +49,4 @@ the variable enh-enclient-command in evernote-mode.el (check to see where setup.
 
 [4]: http://dev.evernote.com/doc/articles/authentication.php#devtoken "Evernote Authentication"
 
-[5]: http://emacs-evernote-mode.googlecode.com/svn/branches/0_41/doc/readme_en.html "Original Readme"
+[5]: doc/readme_en.html "Original Readme"
