@@ -14,10 +14,12 @@
 ;;   limitations under the License.
 
 ;;
-;; evernote-mode home page is at: http://code.google.com/p/emacs-evernote-mode/
-;; Author: Yusuke KAWAKAMI, Akihiro ARISAWA
-;; Version: 0.41
+;; Authors: Luke Amdor <luke.amdor@gmail.com>, Erik L. Arneson <earneson@arnesonium.com>
+;; Original Authors: Yusuke KAWAKAMI, Akihiro ARISAWA
+;; Version: 0.5
 ;; Keywords: tools, emacs, evernote, bookmark
+;; Home Page: https://github.com/pymander/evernote-mode
+;; Original Home Page: http://code.google.com/p/emacs-evernote-mode/
 
 ;; This emacs lisp offers the interactive functions to open, edit, and update notes of Evernote.
 ;; The minor mode Evernote-mode is applied to the buffer editing a note of Evernote.
