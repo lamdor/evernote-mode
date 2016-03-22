@@ -14,10 +14,12 @@
 ;;   limitations under the License.
 
 ;;
-;; evernote-mode home page is at: http://code.google.com/p/emacs-evernote-mode/
-;; Author: Yusuke KAWAKAMI, Akihiro ARISAWA
-;; Version: 0.41
+;; Authors: Luke Amdor <luke.amdor@gmail.com>, Erik L. Arneson <earneson@arnesonium.com>
+;; Original Authors: Yusuke KAWAKAMI, Akihiro ARISAWA
+;; Version: 0.5
 ;; Keywords: tools, emacs, evernote, bookmark
+;; Home Page: https://github.com/pymander/evernote-mode
+;; Original Home Page: http://code.google.com/p/emacs-evernote-mode/
 
 ;; This emacs lisp offers the interactive functions to open, edit, and update notes of Evernote.
 ;; The minor mode Evernote-mode is applied to the buffer editing a note of Evernote.
@@ -149,18 +151,41 @@
 ;; User options
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar evernote-username nil
-  "*An username of your evernote")
+(defgroup evernote nil
+  "Emacs evernote mode offers functions to refer and edit
+   Evernote notes directly from Emacs. OAuth enabled fork of
+   code.google.com repository."
+  :link '(url-link "https://github.com/pymander/evernote-mode")
+  :prefix "evernote-"
+  :group 'external)
 
-(defvar evernote-enml-formatter-command nil
-  "*Formatter for xhtml")
+(defcustom evernote-username nil
+  "*An username of your evernote"
+  :group 'evernote
+  :type '(list string))
 
-(defvar evernote-ruby-command "ruby"
-  "*Path of the ruby command")
+(defcustom evernote-enml-formatter-command 
+  '("w3m" "-dump" "-I" "UTF8" "-O" "UTF8")
+  "*Formatter for xhtml"
+  :group 'evernote)
 
-(defvar evernote-password-cache nil
+(defcustom evernote-ruby-command "ruby"
+  "*Path of the ruby command"
+  :group 'evernote
+  :type '(list string))
+
+(defcustom evernote-password-cache nil
   "*Non-nil means that password cache is enabled.
-It is recommended to encrypt the file with EasyPG.")
+   It is recommended to encrypt the file with EasyPG."
+    :group 'evernote
+  :type '(list string))
+
+(defcustom evernote-developer-token nil
+  "*An developer token of your evernote."
+  :link '(url-link 
+          "http://dev.evernote.com/doc/articles/authentication.php#devtoken")
+  :group 'evernote
+  :type 'string)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface for evernote-browsing-mode.
@@ -550,25 +575,9 @@ It is recommended to encrypt the file with EasyPG.")
   "Login"
   (interactive)
   (if (called-interactively-p) (enh-clear-onmem-cache))
-  (unwind-protect
-      (let* ((cache (enh-password-cache-load))
-             (usernames (mapcar #'car cache))
-             (username (or evernote-username
-                           (read-string "Evernote user name:"
-                                        (car usernames) 'usernames)))
-             (cache-passwd (enutil-aget username cache)))
-        (unless (and cache-passwd
-                     (eq (catch 'error 
-                           (progn 
-                             (enh-command-login username cache-passwd)
-                             t))
-                         t))
-          (let* ((passwd (read-passwd "Passwd:")))
-            (enh-command-login username passwd)
-            (setq evernote-username username)
-            (enh-password-cache-save (enutil-aset username cache passwd)))))
-    (enh-password-cache-close)))
-
+  (unless evernote-developer-token
+    (error "You must define `evernote-developer-token' before using this package. Please read the documentation."))
+  (enh-command-login-token evernote-developer-token)) 
 
 (defun evernote-open-note (&optional ask-notebook)
   "Open a note"
@@ -1724,8 +1733,7 @@ It is recommended to encrypt the file with EasyPG.")
 ;; Functions for executing the external command (enh-command-xxx)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar enh-enclient-command
-  (concat default-directory "ruby/bin/enclient.rb")
+(defvar enh-enclient-command "/usr/bin/enclient.rb"
   "Name of the enclient.rb command")
 (defconst enh-command-process-name "Evernote-Client")
 (defconst enh-command-output-buffer-name "*Evernote-Client-Output*")
@@ -1765,11 +1773,19 @@ It is recommended to encrypt the file with EasyPG.")
            (enutil-to-ruby-string passwd))))
 
 
+(defun enh-command-login-token (token)
+  "Issue login command"
+  (enh-command-issue
+   (format ":class => %s, :auth_token => %s"
+           (enutil-to-ruby-string "AuthCommand")
+           (enutil-to-ruby-string token))))
+
+
 (defun enh-command-get-notebook-attrs ()
   "Issue listnotebooks command"
   (let ((reply (enh-command-issue
                 (format ":class => %s"
-                        (enutil-to-ruby-string "ListNotebookCommand")))))
+                        (enutil-to-ruby-string "ListNotebooksCommand")))))
     (enutil-aget 'notebooks reply)))
 
 
@@ -1832,6 +1848,16 @@ It is recommended to encrypt the file with EasyPG.")
                         (enutil-to-ruby-string (enutil-buffer-string inbuf))))))
     (enutil-aget 'note reply)))
 
+
+(defun enh-command-update-note-tags (note tag-names)
+  "Update a note and change just the tag guids"
+  (let ((reply (enh-command-issue
+                (format ":class => %s, :guid => %s, :title => %s, :tag_names => %s"
+                        (enutil-to-ruby-string "UpdateNoteCommand")
+                        (enutil-to-ruby-string (enutil-aget 'guid note))
+                        (enutil-to-ruby-string (enutil-aget 'title note))
+                        (enutil-to-ruby-string-list tag-names t)))))
+    (enutil-aget 'note reply)))
 
 (defun enh-command-update-note (inbuf guid name notebook-guid is-tag-updated tag-names edit-mode)
   "Issue updatenote command specified by the guid and the parameters for updating."
@@ -1910,9 +1936,10 @@ It is recommended to encrypt the file with EasyPG.")
     (save-excursion
       (set-buffer buffer)
       (erase-buffer)
-      ;(delete-region (point-min) (point-max))
       (setq enh-command-next-command-id
             (+ 1 enh-command-next-command-id))
+      ;; @pymander debugs here
+      ;;(message "ENC Command => %s" command)
       (process-send-string proc
                            (format "{%s, :command_id => %d}"
                                    command enh-command-next-command-id))
@@ -2275,6 +2302,13 @@ It is recommended to encrypt the file with EasyPG.")
   (when (get-buffer enh-password-cache-buffer)
     (kill-buffer enh-password-cache-buffer)))
 
+;;; Programmatic functions for use in other libraries.
+(defun enh-get-notebook-by-name (name)
+  (let ((nb-list (enh-command-get-notebook-attrs)))
+    (loop for nb in nb-list
+          if (and (assq 'name nb)
+                  (string= (cdr (assq 'name nb)) "Captures"))
+          return nb)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General util functions (enutil-xxx)

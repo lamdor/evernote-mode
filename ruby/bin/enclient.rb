@@ -1,4 +1,4 @@
-#! /usr/bin/ruby1.8 -sWKu
+#! /usr/bin/ruby1.9.1 -sWKu
 # -*- coding: utf-8 -*-
 
 #
@@ -35,18 +35,30 @@ require "digest/md5"
 require 'net/https'
 #require "benchmark"
 
-$LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
+## Try the normal system libraries. -- @pymander
+# Load libraries required by the Evernote OAuth
+require 'oauth'
+require 'oauth/consumer'
+ 
+# Load Thrift & Evernote Ruby libraries
+require "evernote_oauth"
+ 
+# Client credentials
+#OAUTH_CONSUMER_KEY = "your key"
+#OAUTH_CONSUMER_SECRET = "your secret"
 
-require "thrift/types"
-require "thrift/struct"
-require "thrift/protocol/base_protocol"
-require "thrift/protocol/binary_protocol"
-require "thrift/transport/base_transport"
-require "thrift/transport/http_client_transport"
-require "Evernote/EDAM/user_store"
-require "Evernote/EDAM/user_store_constants"
-require "Evernote/EDAM/note_store"
-require "Evernote/EDAM/limits_constants"
+# $LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
+
+# require "thrift/types"
+# require "thrift/struct"
+# require "thrift/protocol/base_protocol"
+# require "thrift/protocol/binary_protocol"
+# require "thrift/transport/base_transport"
+# require "thrift/transport/http_client_transport"
+# require "Evernote/EDAM/user_store"
+# require "Evernote/EDAM/user_store_constants"
+# require "Evernote/EDAM/note_store"
+# require "Evernote/EDAM/limits_constants"
 
 
 module EnClient
@@ -65,8 +77,11 @@ module EnClient
           when :field_type_base64_array
             b64list = Formatter.encode_base64_list varval
             "#{varsym}=#{b64list.join "|"}"
+          when :field_type_object
+            encobj = Formatter.encode_base64 varval.serialize
+            "#{varsym}=#{encobj}"
           else
-            raise IllegalStateException.new("illegal field type #{ftype}")
+            raise IllegalStateException.new("illegal field type #{vartype}")
           end
         end
       end
@@ -78,11 +93,13 @@ module EnClient
       fields = str.split ","
       fields.each do |f|
         f =~ /\A([^=]*)=(.*)\z/
+        if $1.nil? then
+          next;
+        end
         varsym = $1.to_sym
         varval_str = $2
         vartype = serialized_fields[varsym]
         #puts "[#{varsym}], [#{varval_str}], [#{vartype}]"
-
         varval =
           if varval_str
             case vartype
@@ -104,6 +121,15 @@ module EnClient
               Formatter.decode_base64 varval_str
             when :field_type_base64_array
               Formatter.decode_base64_list varval_str.split("|")
+            when :field_type_object
+              if varsym == :attributes
+                a = Evernote::EDAM::Type::NoteAttributes.new
+                deserialized = Formatter.decode_base64 varval_str
+                a.deserialize deserialized
+                a
+              else
+                raise IllegalStateException.new("illegal field type #{vartype} for #{varsym}")
+              end
             else
               raise IllegalStateException.new("illegal field type #{vartype} for #{varsym}")
             end
@@ -135,7 +161,7 @@ module EnClient
               raise IllegalStateException.new("illegal field value of boolean #{varval}")
             end
           when :field_type_string
-            str += %|(#{varsym} . "#{varval}")|
+            str += %|(#{varsym} . "#{Formatter.sexp_string_escape varval}")|
           when :field_type_string_array
             str += "(#{varsym} . ("
             varval.each do |elem|
@@ -155,6 +181,10 @@ module EnClient
                 str += " "
             end
             str += "))"
+          when :field_type_object
+            str += "(#{varsym} . " 
+            str += varval.to_sexp
+            str += ")"
           else
             raise IllegalStateException.new("illegal field type #{vartype}")
           end
@@ -186,25 +216,54 @@ module Evernote
       end
 
 
-      class Note
+      class NoteAttributes
         include EnClient::Serializable
 
-        attr_accessor :editMode, :contentFile
-
         def serialized_fields
-          { :guid => :field_type_string,
-            :title => :field_type_base64,
-            :created => :field_type_timestamp,
-            :updated => :field_type_timestamp,
-            :updateSequenceNum => :field_type_int,
-            :notebookGuid => :field_type_string,
-            :tagGuids => :field_type_string_array,
-            :tagNames => :field_type_base64_array,
-            :editMode => :field_type_string,
-            :contentFile => :field_type_base64 }
+          { :subjectDate => :field_type_timestamp,
+            :latitude => :field_type_int, # double
+            :longitude => :field_type_int, # double
+            :altitude => :field_type_int, # double
+            :author => :field_type_string,
+            :source => :field_type_string,
+            :sourceURL => :field_type_string,
+            :sourceApplication => :field_type_base64,
+            :shareDate => :field_type_timestamp,
+            :reminderOrder => :field_type_int, # i64
+            :reminderDoneTime => :field_type_timestamp,
+            :reminderTime => :field_type_timestamp,
+            :placeName => :field_type_string,
+            :contentClass => :field_type_string,
+            #applicationData => LazyMap
+            :lastEditedBy => :field_type_string,
+            #classifications => map<string, string>
+            :creatorId => :field_type_guid,
+            :lastEditorId => :field_type_guid }
         end
       end
 
+      class Note
+        include EnClient::Serializable
+
+        attr_accessor :editMode, :contentFile, :attributes, :resources
+
+        def serialized_fields
+          { :guid              => :field_type_string,
+            :title             => :field_type_base64,
+            :created           => :field_type_timestamp,
+            :updated           => :field_type_timestamp,
+            :updateSequenceNum => :field_type_int,
+            :notebookGuid      => :field_type_string,
+            :tagGuids          => :field_type_string_array,
+            :tagNames          => :field_type_base64_array,
+            :editMode          => :field_type_string,
+            :attributes        => :field_type_object,
+            #:reminderTime      => :field_type_string,
+            #:reminderDoneTime  => :field_type_timestamp,
+            :resources         => :field_type_string_array,
+            :contentFile       => :field_type_base64 }
+        end
+      end
 
       class Tag
         include EnClient::Serializable
@@ -289,10 +348,10 @@ module EnClient
         http = Net::HTTP.new @url.host, @url.port
       end
       http.use_ssl = @url.scheme == "https"
-      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      http.verify_depth = 5
-      http.ssl_version = :SSLv3
-      # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      #http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      #http.verify_depth = 5
+      #http.ssl_version = :SSLv3
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       resp = http.post(@url.request_uri, @outbuf, @headers)
       @inbuf = StringIO.new resp.body
       @outbuf = ""
@@ -404,7 +463,7 @@ module EnClient
       all_commands =
         [AuthCommand,
          ListNoteCommand,
-         ListNotebookCommand,
+         ListNotebooksCommand,
          ListTagCommand,
          ListSearchCommand,
          SearchNoteCommand,
@@ -429,14 +488,20 @@ module EnClient
   end
 
 
+
+
   class AuthCommand < Command
-    attr_accessor :user, :passwd
+    attr_accessor :user, :passwd, :auth_token
 
     def exec_impl
-      Formatter.to_ascii @user, @passwd
+      Formatter.to_ascii @user, @passwd, @auth_token
 
       server_task do
-        sm.authenticate @user, @passwd
+        if @auth_token
+          sm.authenticate_with_token @auth_token
+        else
+          sm.authenticate @user, @passwd
+        end
         LOG.info "Auth successed: auth_token = '#{sm.auth_token}', shared_id = '#{sm.shared_id}'"
         tm.put SyncTask.new(sm, dm, tm)
         server_task true do # defer reply until first sync will be done.
@@ -454,7 +519,9 @@ module EnClient
     NOTE_DEFAULT_FOOTER = %|</en-note>|
 
     def set_attribute_and_format_content!(note)
-      note.attributes = Evernote::EDAM::Type::NoteAttributes.new
+      unless note.attributes
+        note.attributes = Evernote::EDAM::Type::NoteAttributes.new
+      end
       if note.editMode == "TEXT"
         note.content = to_xhtml note.content if note.content
         note.attributes.sourceApplication = APPLICATION_NAME_TEXT
@@ -466,8 +533,8 @@ module EnClient
     def to_xhtml(content)
       content = CGI.escapeHTML content
       content.gsub! %r{ }, %{&nbsp;}
-        content.gsub! %r{(?:\r\n)|\n|\r}, %|<br clear="none"/>|
-        content = NOTE_DEFAULT_HEADER + content + NOTE_DEFAULT_FOOTER
+      content.gsub! %r{(?:\r\n)|\n|\r}, %|<br clear="none"/>|
+      content = NOTE_DEFAULT_HEADER + content + NOTE_DEFAULT_FOOTER
     end
   end
 
@@ -746,6 +813,7 @@ module EnClient
           DBUtils.set_note_and_content dm, note, content
           reply = GetNoteReply.new
           reply.note = note
+          #reply.attributes = note.attributes
           shell.reply self, reply
         end
       end
@@ -769,7 +837,7 @@ module EnClient
   end
 
 
-  class ListNotebookCommand < Command
+  class ListNotebooksCommand < Command
     @@issued_before = false
 
     def exec_impl
@@ -789,7 +857,7 @@ module EnClient
       notebooks.sort! do |a, b|
         a.name <=> b.name
       end
-      reply = ListNotebookReply.new
+      reply = ListNotebooksReply.new
       reply.notebooks = notebooks
       shell.reply self, reply
     end
@@ -799,7 +867,7 @@ module EnClient
         LOG.debug "return notebooks from server"
         notebooks = sm.note_store.listNotebooks sm.auth_token
         DBUtils.sync_updated_notebooks dm, notebooks
-        reply = ListNotebookReply.new
+        reply = ListNotebooksReply.new
         reply.notebooks = notebooks
         @@issued_before = true
         shell.reply self, reply
@@ -845,6 +913,7 @@ module EnClient
       notes.sort! do |a, b|
         b.updated <=> a.updated
       end
+
       reply = ListNoteReply.new
       reply.notes = notes
       shell.reply self, reply
@@ -969,7 +1038,7 @@ module EnClient
   end
 
 
-  class ListNotebookReply < Reply
+  class ListNotebooksReply < Reply
     attr_accessor :notebooks
   end
 
@@ -1073,7 +1142,8 @@ module EnClient
       LOG.info "[sync state end]"
       LOG.info "expiration     = #{@sm.expiration}"
 
-      @sm.refresh_authentication sync_state.currentTime
+      # Since all authentication is via token, this probably isn't needed ever. -- @pymander
+      #@sm.refresh_authentication sync_state.currentTime
       last_sync, usn = DBUtils.get_last_sync_and_usn @dm
 
       LOG.info "[current state begin]"
@@ -1179,12 +1249,22 @@ module EnClient
       @note_store = create_note_store @shared_id
     end
 
+    def authenticate_with_token(token)
+      @user_store = create_user_store
+      user = @user_store.getUser token
+      @auth_token = token
+      @shared_id = user.shardId if user
+      @expiration = 60 * 60 * 24 * 365
+      @note_store = create_note_store @shared_id
+    end
+
+    # This function needs changing.  According to http://dev.evernote.com/doc/reference/UserStore.html#Fn_UserStore_refreshAuthentication
+    # this is only available for internal authentications.  So it needs to refresh using the plain old normal auth.
+    # -- @pymander
     def refresh_authentication(current_time)
       if current_time > @expiration - REFRESH_LIMIT_SEC * 1000
         LOG.info "refresh authentication"
-        auth_result = @user_store.refreshAuthentication @auth_token
-        @auth_token, dummy, @expiration = get_session auth_result
-        @note_store = create_note_store @shared_id
+        authenticate_with_token @auth_token
       end
     end
 
@@ -1415,6 +1495,7 @@ module EnClient
       dm.transaction do
         dm.open_note do |db|
           if db.has_key? guid
+            #puts db[guid]
             note.deserialize db[guid]
           else
             raise NotFoundException.new("Note guid #{guid} is not found")
@@ -1756,6 +1837,11 @@ module EnClient
     def self.to_ascii(*rest)
       if IS_FORCE_ENCODING_SUPPORTED
         rest.each do |elem|
+          if elem
+           if elem.bytesize > elem.length
+             return
+           end
+          end
           elem.force_encoding Encoding::ASCII_8BIT if elem
         end
       end
@@ -1831,6 +1917,7 @@ module EnClient
         while true
           begin
             line = $stdin.gets "\000"
+            #line = $stdin.gets "\n" # @pymander - for debugging
             hash = eval line
             LOG.debug "<#{hash[:class]}>"
             command = Command.create_from_hash hash
